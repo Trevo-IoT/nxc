@@ -1,0 +1,7 @@
+    
+
+a = 5; --   other comment
+a += 1; --test after comment
+
+-- print line
+println(a);
