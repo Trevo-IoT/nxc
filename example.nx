@@ -1,66 +1,68 @@
 
 function send_mock_value(idx, min, max)
-    value = rand(min, max)
+    value = rand(min, max);
     -- value will set 4 bytes in array (big-endian)'
-    rsp = [0xf0, idx, value::-4]
-    send("uart", rsp)
+    rsp = [0xf0, idx, value::-4];
+    send("uart", rsp);
 end
 
 -- Create a task, start it and put it in `heatbeat_t` variable
 -- The system will tick this task always with interval of 1000ms
 task heatbeat_r @ 1000
-    "uart".send("heatbeat")
-    @200 -- Delay 200ms
-    "uart".send("\xc8heatbeat")
+    "uart".send("heatbeat");
+    @200; -- Delay 200ms
+    "uart".send("\xc8heatbeat");
 end
 
 -- Call this function every time "uart" interface have a new message
 -- Each message always have 4 bytes
 when "uart" => msg::4
-    record current_r, voltage_r, temperature_r
+    record current_r, voltage_r, temperature_r;
     -- matching assing
     --   `opcode` will be the first byte of `msg`
     --   `idx` will be the second byte of `msg`
     --   `interval` will be the third and fourth bytes of `msg` (little-endian)
-    [opcode, idx, interval::2] = msg
+    [opcode, idx, interval::2] = msg;
+
+    hello = nil;
 
     -- match statement
     -- similar to match in Rust
-    match opcode do
-        0x00 => current_r = send_mock_value.start([idx, 0, 2000], false) @ interval,
-        0x01 => current_r.stop(),
-        0x10 => voltage_r = send_mock_value.start([idx, 200, 270], false) @ interval,
-        0x11 => voltage_r.stop(),
-        0x20 => temperature_r = send_mock_value.start([idx, 17, 28], false) @ interval,
-        0x21 => temperature_r.stop(),
-        0x31 => {
-            print("Stoping heatbeat...\n")
-            heatbeat_r.top()
-        },
-        _ => print("Not recongnized %d\n", opcode),
+    match(opcode)
+        0x00 => current_r = send_mock_value.start([idx, 0, 2000], false) @ interval;
+        0x01 => current_r.stop();
+        0x10 => voltage_r = send_mock_value.start([idx, 200, 270], false) @ interval;
+        0x11 => voltage_r.stop();
+        0x20 => temperature_r = send_mock_value.start([idx, 17, 28], false) @ interval;
+        0x21 => temperature_r.stop();
+        0x31 => do
+            print("Stoping heatbeat...\n");
+            heatbeat_r.top();
+        end
+        _ => print("Not recongnized %d\n", opcode);
     end
 end
 
 -- Call this function every time "uart" interface have a new message
 -- Each message have only 1 byte
 when "uart" => msg
-    print("%a", msg)
+    print("%a", msg);
 end
 
 -- Call this function every time "uart" interface have a new message
 -- Each message will start in the end of prev message and terminate at character '\x3f'.
 when "uart" => msg::'.*\x3f'
-    "%a".print(msg)
+    "%a".print(msg);
 end
 
 -- Call this function every time "uart" interface have a new message
 -- Each message will start at character '\x3a' and terminate at character '\x3f'.
 when "uart" => msg::"\x3a.*\x3f"
-    print("%a", msg)
+    print("%a", msg);
 end
 
 -- Call this function every time "uart" interface have a new message
 -- Each message will start at character '\x3a' and terminate in the start of next message.
 when "uart" => msg::"\x3a.*"
-    print("%a", msg)
+    print("%a", msg);
 end

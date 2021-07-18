@@ -1,7 +1,23 @@
-    
 
+-- valid dec int
+3
+27123
+-5
+-46372
+0
+-0
+0x0
+-0x0
+0x3
+-0x5
+0x3fea06c
+-0xed032f0
+
+
+-- assign
 a = 5; --   other comment
 a += 1; --test after comment
 
 -- print line
 println(a);
+println(a, 0x0, -23);
