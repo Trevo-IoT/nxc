@@ -1,0 +1,25 @@
+{
+    "name": "nexus-lang",
+    "displayName": "Nexus Language",
+    "description": "Syntax highlightinh for Nexus language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.58.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "nx",
+            "aliases": ["nexus", "nx"],
+            "extensions": [".nexus",".nx"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "nx",
+            "scopeName": "source.nx",
+            "path": "./syntaxes/nx.tmLanguage.json"
+        }]
+    }
+}

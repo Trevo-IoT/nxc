@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Clone)]
 pub enum TokenKind {
@@ -6,19 +7,18 @@ pub enum TokenKind {
     Delimiter,
     IntegerLiteral,
     ArithmeticOperator,
-    AssingOperator,
+    AssignOperator,
     Keyword,
     StringLiteral,
     GuardOperator,
     TimeOperator,
-    PipeOprator,
+    PipeOperator,
     RightArrow,
     MatchDefaultOperator,
     BooleanLiteral,
     NilLiteral,
 }
 
-#[derive(Debug)]
 pub struct Token {
     kind: TokenKind,
     value: String,
@@ -26,7 +26,19 @@ pub struct Token {
 
 impl Token {
     pub fn new(kind: TokenKind, value: String) -> Self {
-        Self {kind, value}
+        Self { kind, value }
+    }
+}
+
+impl Debug for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<{:?},\"{}\">", self.kind, self.value)
+    }
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Token: <{:?},\"{}\">", self.kind, self.value)
     }
 }
 
@@ -52,19 +64,8 @@ pub fn tokenizer(content: String) -> Result<Vec<Token>, String> {
     let lines = content.lines();
 
     let mut keyword_list = vec![
-        "function",
-        "end",
-        "do",
-        "task",
-        "when",
-        "record",
-        "match",
-        "if",
-        "elif",
-        "else",
-        "while",
-        "for",
-        "in"
+        "function", "end", "do", "task", "when", "record", "match", "if", "elif", "else", "while",
+        "for", "in",
     ];
     let mut keyword_regex = format!("(({})", keyword_list.remove(0));
     for kw in keyword_list {
@@ -77,23 +78,38 @@ pub fn tokenizer(content: String) -> Result<Vec<Token>, String> {
     let blank: Regex = Regex::new(r"^[ \t\r]*$").unwrap();
 
     let rules: Vec<(TokenKind, Regex)> = vec![
-        (TokenKind::StringLiteral, Regex::new("^((\".*?\")|('.*?'))").unwrap()),
-        (TokenKind::IntegerLiteral, Regex::new(r"^-?(([1-9][0-9]*)|(0x[0-9a-fA-F]+)|(0x0+)|(0+))").unwrap()),
-        (TokenKind::BooleanLiteral, Regex::new(r"^((true)|(false))").unwrap()),
+        (
+            TokenKind::StringLiteral,
+            Regex::new("^((\".*?\")|('.*?'))").unwrap(),
+        ),
+        (
+            TokenKind::IntegerLiteral,
+            Regex::new(r"^-?(([1-9][0-9]*)|(0x[0-9a-fA-F]+)|(0x0+)|(0+))").unwrap(),
+        ),
+        (
+            TokenKind::BooleanLiteral,
+            Regex::new(r"^((true)|(false))").unwrap(),
+        ),
         (TokenKind::NilLiteral, Regex::new(r"^nil").unwrap()),
-
         (TokenKind::Delimiter, Regex::new(r"^[()\[\],;]").unwrap()),
-
         (TokenKind::MatchDefaultOperator, Regex::new(r"^_").unwrap()),
         (TokenKind::RightArrow, Regex::new(r"^=>").unwrap()),
-        (TokenKind::AssingOperator, Regex::new(r"^[\+\-\*/%]?=").unwrap()),
-        (TokenKind::ArithmeticOperator, Regex::new(r"^[\+\-\*/%]").unwrap()),
+        (
+            TokenKind::AssignOperator,
+            Regex::new(r"^[\+\-\*/%]?=").unwrap(),
+        ),
+        (
+            TokenKind::ArithmeticOperator,
+            Regex::new(r"^[\+\-\*/%]").unwrap(),
+        ),
         (TokenKind::GuardOperator, Regex::new(r"^::").unwrap()),
         (TokenKind::TimeOperator, Regex::new(r"^@").unwrap()),
-        (TokenKind::PipeOprator, Regex::new(r"^\.").unwrap()),
-
+        (TokenKind::PipeOperator, Regex::new(r"^\.").unwrap()),
         (TokenKind::Keyword, Regex::new(keyword_regex).unwrap()),
-        (TokenKind::Identifier, Regex::new(r"^[_a-zA-Z][_a-zA-Z0-9]*").unwrap()),
+        (
+            TokenKind::Identifier,
+            Regex::new(r"^[_a-zA-Z][_a-zA-Z0-9]*").unwrap(),
+        ),
     ];
 
     for (line_idx, line) in lines.enumerate() {
@@ -117,7 +133,11 @@ pub fn tokenizer(content: String) -> Result<Vec<Token>, String> {
                 }
             }
 
-            return Err(format!("Cannot parse {} at line {}", line_content, line_idx+1));
+            return Err(format!(
+                "Cannot parse {} at line {}",
+                line_content,
+                line_idx + 1
+            ));
         }
     }
 

@@ -1,0 +1,160 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "nexus",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#entities"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.nx",
+					"match": "\\b(end|do|record|match|if|elif|else|while|for|return|store)\\b"
+				},
+				{
+					"name": "keyword.operator.new",
+					"match": "\\b(and|or|not|xor|in)\\b"
+				},
+				{
+					"name": "support.function",
+					"match": "\\b(print|send|start|stop)\\b"
+				},
+				{
+					"name": "support.class",
+					"match": "@\\s*\\w\\w*"
+				},
+				{
+					"name": "constant.numeric",
+					"match": "\\d\\d*"
+				},
+				{
+					"name": "constant.language.nx",
+					"match": "\\b(nil|true|false)\\b"
+				},
+				{
+					"name": "token.warn-token",
+					"match": "::-?\\d+"
+				},
+				{
+					"name": "token.warn-token",
+					"begin": "::\"",
+					"end": "\"",
+					"patterns": [
+						{
+							"name": "constant.language",
+							"match": "\\\\x[0-9a-fA-F][0-9a-fA-F]"
+						},
+						{
+							"name": "constant.language",
+							"match": "\\\\[^x]"
+						}
+					]
+				},
+				{
+					"name": "token.warn-token",
+					"begin": "::'",
+					"end": "'",
+					"patterns": [
+						{
+							"name": "constant.language",
+							"match": "\\\\x[0-9a-fA-F][0-9a-fA-F]"
+						},
+						{
+							"name": "constant.language",
+							"match": "\\\\[^x]"
+						}
+					]
+				},
+				{
+					"name": "constant.language.nx",
+					"match": "=>"
+				},
+				{
+					"begin": "^\\s*(function)\\s+(\\w+)\\s*(\\()",
+					"beginCaptures": {
+						"1": { "name": "keyword.control" },
+						"2": { "name": "support.function" }
+					},
+					"end": "\\)",
+					"patterns": [
+						{
+							"match": "\\w+",
+							"name": "variable"
+						}
+					]
+				},
+				{
+					"match": "^\\s*(when)\\s+((\".*\")|('.*'))\\s*(=>)\\s*(\\w+)",
+					"captures": {
+						"1": { "name": "keyword.control" },
+						"3": { "name": "string.quoted.double" },
+						"4": { "name": "string.quoted.single" },
+						"5": { "name": "constant.language.nx" },
+						"6": { "name": "variable" }
+					}
+				},
+				{
+					"match": "^(task)\\s+(\\w+)",
+					"captures": {
+						"1": { "name": "keyword.control" },
+						"2": { "name": "support.function" }
+					}
+				}
+			]
+		},
+		"strings": {
+			"patterns": [
+				{
+					"name": "string.quoted.single.nx",
+					"begin": "'",
+					"end": "'",
+					"patterns": [
+						{
+							"name": "constant.character.escape.nx",
+							"match": "\\\\x[0-9a-fA-F][0-9a-fA-F]"
+						},
+						{
+							"name": "constant.character.escape.nx",
+							"match": "\\\\[^x]"
+						}
+					]
+				},
+				{
+					"name": "string.quoted.double.nx",
+					"begin": "\"",
+					"end": "\"",
+					"patterns": [
+						{
+							"name": "constant.character.escape.nx",
+							"match": "\\\\x[0-9a-fA-F][0-9a-fA-F]"
+						},
+						{
+							"name": "constant.character.escape.nx",
+							"match": "\\\\[^x]"
+						}
+					]
+				}
+			]
+		},
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.double-dash.nx",
+					"match": "((?:--).*)$"
+				}
+			]
+		}
+	},
+	"scopeName": "source.nx"
+}
