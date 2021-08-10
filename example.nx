@@ -7,17 +7,19 @@ end
 
 -- Create a task, start it and put it in `heatbeat_t` variable
 -- The system will tick this task always with interval of 1000ms
-task heatbeat_r @ 1000
+  task heatbeat_r @ 1000
     "uart".send('heatbeat');
     @200; -- Delay 200ms
     "uart".send("\xc8heatbeat");
 end
 
-record registers[8]
+record registers[8,1];
+record counter[2,4];
 
 -- Call this function every time "uart" interface have a new message
 -- Each message always have 4 bytes
-when "uart" => msg::4 store current_r, voltage_r, temperature_r;
+when "uart" => msg::4
+    store current_r, voltage_r, temperature_r;
     -- matching assing
     --   `opcode` will be the first byte of `msg`
     --   `idx` will be the second byte of `msg`
@@ -26,8 +28,10 @@ when "uart" => msg::4 store current_r, voltage_r, temperature_r;
 
     hello = nil;
 
-    if (1 == 1 and 2 != 0)
+    if (1 != 1 and 2 == 0)
         print('Eq\n')
+    elif(not false)
+        print("Diff\n")
     end
 
     for (m in msg)
