@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 
 mod lexer;
+mod token;
 
 fn main() -> std::io::Result<()> {
     let mut file = File::open("example.nx")?;
