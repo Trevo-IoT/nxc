@@ -83,7 +83,10 @@ pub enum Statement {
         cases: Vec<(Literal, Vec<Statement>)>,
         default: Vec<Statement>,
     },
-    Expression(Expression),
+    Return {
+        expression: Expression,
+    },
+    FunctionCall(FunctionCall),
 }
 
 #[derive(Debug)]
@@ -143,26 +146,76 @@ pub fn parse(mut tokens: Vec<Token>) -> Result<Vec<AST>, String> {
             ast_list.push(ast);
             continue;
         }
+
+        return Err("Statement isn't valid".to_string());
     }
 
     Ok(ast_list)
 }
 
-fn parse_function(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
-    if tokens.is_empty() {
-        return Ok(None);
-    }
-    if tokens.get(0).unwrap() != &Token::new(TokenKind::Keyword, "function".to_string()) {
-        return Ok(None);
-    }
-    tokens.remove(0);
+macro_rules! check_first_keyword {
+    ($tokens: expr, $kw: expr) => {
+        if $tokens.is_empty() {
+            return Ok(None);
+        }
+        if $tokens.get(0).unwrap() != &Token::new(TokenKind::Keyword, $kw.to_string()) {
+            return Ok(None);
+        }
+        $tokens.remove(0);
+    };
+}
 
-    let name = tokens.get(0).ok_or("Not find function name")?;
-    if name.kind() != &TokenKind::Identifier {
-        return Err("The function 'keyword' must be followed by a identifier".to_string());
-    }
-    let name = name.value().to_string();
-    tokens.remove(0);
+macro_rules! retrieve_tokenkind {
+    ($tokens: expr, $tk_kind: expr, $err_msg: expr) => {{
+        let tk = $tokens.get(0).ok_or($err_msg.to_string())?;
+        if tk.kind() != &$tk_kind {
+            return Err($err_msg.to_string());
+        }
+        $tokens.remove(0).value()
+    }};
+}
+
+macro_rules! retrieve_tokenkind_or_none {
+    ($tokens: expr, $tk_kind: expr, $err_msg: expr) => {{
+        let tk = $tokens.get(0).ok_or($err_msg.to_string())?;
+        if tk.kind() != &$tk_kind {
+            None
+        } else {
+            Some($tokens.remove(0))
+        }
+    }};
+}
+
+macro_rules! retrieve_token {
+    ($tokens: expr, $tk: expr, $err_msg: expr) => {{
+        let tk = $tokens.get(0).ok_or($err_msg.to_string())?;
+        if tk != &$tk {
+            return Err($err_msg.to_string());
+        }
+        $tokens.remove(0).value()
+    }};
+}
+
+macro_rules! retrieve_token_or_none {
+    ($tokens: expr, $tk: expr, $err_msg: expr) => {{
+        let tk = $tokens.get(0).ok_or($err_msg.to_string())?;
+        if tk != &$tk {
+            None
+        } else {
+            Some($tokens.remove(0))
+        }
+    }};
+}
+
+fn parse_function(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
+    check_first_keyword!(tokens, "function");
+
+    let name = retrieve_tokenkind!(
+        tokens,
+        TokenKind::Identifier,
+        "The 'function' keyword requires an identifier"
+    )
+    .to_string();
 
     let arguments = parse_argument_name_list(tokens)?;
 
@@ -176,20 +229,14 @@ fn parse_function(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
 }
 
 fn parse_record(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
-    if tokens.is_empty() {
-        return Ok(None);
-    }
-    if tokens.get(0).unwrap() != &Token::new(TokenKind::Keyword, "record".to_string()) {
-        return Ok(None);
-    }
-    tokens.remove(0);
+    check_first_keyword!(tokens, "record");
 
-    let name = tokens.get(0).ok_or("Not find function name")?;
-    if name.kind() != &TokenKind::Identifier {
-        return Err("The 'record' keyword must be followed by a identifier".to_string());
-    }
-    let name = name.value().to_string();
-    tokens.remove(0);
+    let name = retrieve_tokenkind!(
+        tokens,
+        TokenKind::Identifier,
+        "The 'record' keyword requires an identifier"
+    )
+    .to_string();
 
     let (length, data_size) = parse_record_info(tokens)?;
 
@@ -201,20 +248,14 @@ fn parse_record(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
 }
 
 fn parse_task(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
-    if tokens.is_empty() {
-        return Ok(None);
-    }
-    if tokens.get(0).unwrap() != &Token::new(TokenKind::Keyword, "task".to_string()) {
-        return Ok(None);
-    }
-    tokens.remove(0);
+    check_first_keyword!(tokens, "task");
 
-    let name = tokens.get(0).ok_or("Not find task name")?;
-    if name.kind() != &TokenKind::Identifier {
-        return Err("The task 'keyword' must be followed by a identifier".to_string());
-    }
-    let name = name.value().to_string();
-    tokens.remove(0);
+    let name = retrieve_tokenkind!(
+        tokens,
+        TokenKind::Identifier,
+        "The 'task' keyword requires an identifier"
+    )
+    .to_string();
 
     let interval_ms = parse_task_interval(tokens)?;
 
@@ -228,51 +269,47 @@ fn parse_task(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
 }
 
 fn parse_when(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
-    if tokens.is_empty() {
-        return Ok(None);
-    }
-    if tokens.get(0).unwrap() != &Token::new(TokenKind::Keyword, "when".to_string()) {
-        return Ok(None);
-    }
-    tokens.remove(0);
+    check_first_keyword!(tokens, "when");
 
-    let interface = tokens.get(0).ok_or("Not find when interface".to_string())?;
-    if interface.kind() != &TokenKind::StringLiteral {
-        return Err("The 'when' keyword must be followed by a string literal".to_string());
-    }
-    let interface = interface.value().to_string();
-    tokens.remove(0);
+    let interface = retrieve_tokenkind!(
+        tokens,
+        TokenKind::StringLiteral,
+        "The 'when' keyword requires a string literal"
+    )
+    .to_string();
 
-    let right_arrow = tokens.get(0).ok_or("Not find right arrow".to_string())?;
-    if right_arrow.kind() != &TokenKind::RightArrow {
-        return Err("Not find right arrow (=>) after 'when' interface".to_string());
-    }
-    tokens.remove(0);
+    retrieve_tokenkind!(
+        tokens,
+        TokenKind::RightArrow,
+        "Not found right arrow (=>) after 'when' interface"
+    );
 
-    let packet = tokens.get(0).ok_or("Not find when packet".to_string())?;
-    if packet.kind() != &TokenKind::Identifier {
-        return Err("Not find 'when' packet identifier after right arrow".to_string());
-    }
-    let packet = packet.value().to_string();
-    tokens.remove(0);
+    let packet = retrieve_tokenkind!(
+        tokens,
+        TokenKind::Identifier,
+        "Not found 'when' packet variable after right arrow (=>)"
+    )
+    .to_string();
 
-    let guard_symbol = tokens.get(0).ok_or("Not find guard operator".to_string())?;
-    if guard_symbol.kind() != &TokenKind::GuardOperator {
-        return Err("Not find :: after 'when' packet name".to_string());
-    }
-    tokens.remove(0);
+    retrieve_tokenkind!(
+        tokens,
+        TokenKind::GuardOperator,
+        "Not found :: after 'when' packet variable"
+    );
 
-    let guard = tokens.get(0).ok_or("Not find guard".to_string())?;
-    let guard = if guard.kind() != &TokenKind::IntegerLiteral {
-        Guard::Numeric(guard.value().parse::<isize>().unwrap())
-    } else if guard.kind() != &TokenKind::StringLiteral {
-        Guard::Regex(guard.value().to_string())
+    let guard = if let Some(numeric_guard) =
+        retrieve_tokenkind_or_none!(tokens, TokenKind::IntegerLiteral, "Not find guard")
+    {
+        Guard::Numeric(numeric_guard.value().parse::<isize>().unwrap())
+    } else if let Some(regex_guard) =
+        retrieve_tokenkind_or_none!(tokens, TokenKind::StringLiteral, "Not find guard")
+    {
+        Guard::Regex(regex_guard.value().to_string())
     } else {
         return Err(
             "The next token after :: must be a integer literal or a string literal".to_string(),
         );
     };
-    tokens.remove(0);
 
     let body = parse_block_statement(tokens)?;
 
@@ -285,17 +322,52 @@ fn parse_when(tokens: &mut Vec<Token>) -> Result<Option<AST>, String> {
 }
 
 fn parse_argument_name_list(tokens: &mut Vec<Token>) -> Result<Vec<String>, String> {
-    let open_bracket = tokens.get(0).ok_or("Missing a open bracket")?;
-    if open_bracket != &Token::new(TokenKind::Delimiter, "(".to_string()) {
-        return Err("Missing a open bracket".to_string());
+    let mut arg_name_list = vec![];
+
+    retrieve_token!(
+        tokens,
+        Token::new(TokenKind::Delimiter, "(".to_string()),
+        "Missing an open bracket"
+    );
+
+    if let Some(first_arg) =
+        retrieve_tokenkind_or_none!(tokens, TokenKind::Identifier, "Not find first argument")
+    {
+        arg_name_list.push(first_arg.value().to_string());
+
+        loop {
+            if let Some(_) = retrieve_token_or_none!(
+                tokens,
+                Token::new(TokenKind::Delimiter, ")".to_string()),
+                "Missing a close bracket"
+            ) {
+                break;
+            }
+
+            retrieve_token!(
+                tokens,
+                Token::new(TokenKind::Delimiter, ",".to_string()),
+                "Missing comma after argument name"
+            );
+
+            arg_name_list.push(
+                retrieve_tokenkind!(
+                    tokens,
+                    TokenKind::Identifier,
+                    "The arguments in function definition must be a identifier"
+                )
+                .to_string(),
+            );
+        }
+    } else {
+        retrieve_token!(
+            tokens,
+            Token::new(TokenKind::Delimiter, ")".to_string()),
+            "Missing a close bracket"
+        );
     }
-    tokens.remove(0);
 
-    todo!()
-}
-
-fn parse_block_statement(tokens: &mut Vec<Token>) -> Result<Vec<Statement>, String> {
-    todo!()
+    Ok(arg_name_list)
 }
 
 fn parse_record_info(tokens: &mut Vec<Token>) -> Result<(usize, usize), String> {
@@ -346,5 +418,156 @@ fn parse_record_info(tokens: &mut Vec<Token>) -> Result<(usize, usize), String> 
 }
 
 fn parse_task_interval(tokens: &mut Vec<Token>) -> Result<usize, String> {
+    if let Some(_) =
+        retrieve_tokenkind_or_none!(tokens, TokenKind::TimeOperator, "Missing time operator")
+    {
+        let interval_ms = retrieve_tokenkind!(
+            tokens,
+            TokenKind::IntegerLiteral,
+            "Not found task interval after @"
+        )
+        .parse::<isize>()
+        .unwrap();
+        if interval_ms < 0 {
+            return Err("The task interval cannot be a negative integer".to_string());
+        }
+
+        Ok(interval_ms as usize)
+    } else {
+        Ok(0)
+    }
+}
+
+fn parse_block_statement(tokens: &mut Vec<Token>) -> Result<Vec<Statement>, String> {
+    let mut statements = vec![];
+
+    loop {
+        if let Some(_) = retrieve_token_or_none!(
+            tokens,
+            Token::new(TokenKind::Keyword, "end".to_string()),
+            "Not found 'end' keyword"
+        ) {
+            break;
+        }
+
+        statements.push(parse_statement(tokens)?);
+    }
+
+    Ok(statements)
+}
+
+fn parse_statement(tokens: &mut Vec<Token>) -> Result<Statement, String> {
+    if let Some(statement) = parse_assignment(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_assignment_sum(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_assignment_minus(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_assignment_mult(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_assignment_div(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_assignment_mod(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_delay(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_store(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_if(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_for(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_while(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_match(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_return(tokens)? {
+        return Ok(statement);
+    }
+
+    if let Some(statement) = parse_statement_function_call(tokens)? {
+        return Ok(statement);
+    }
+
+    return Err("Statement isn't valid".to_string());
+}
+
+fn parse_assignment(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_assignment_sum(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_assignment_minus(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_assignment_mult(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_assignment_div(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_assignment_mod(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_delay(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_store(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_if(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_for(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_while(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_match(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_return(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
+    todo!()
+}
+
+fn parse_statement_function_call(tokens: &mut Vec<Token>) -> Result<Option<Statement>, String> {
     todo!()
 }
