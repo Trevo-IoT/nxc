@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Identifier,
     Delimiter,
@@ -36,6 +36,14 @@ impl Token {
         }
     }
 
+    pub fn kind(&self) -> &TokenKind {
+        &self.kind
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+
     pub fn value_len(&self) -> usize {
         self.value.len()
     }
@@ -66,5 +74,11 @@ impl Display for Token {
             "Token: <{:?},\"{}\",{}, {}>",
             self.kind, self.value, self.line, self.column
         )
+    }
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind && self.value == other.value
     }
 }

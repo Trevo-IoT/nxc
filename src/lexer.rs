@@ -62,7 +62,7 @@ fn get_rules() -> Vec<(TokenKind, Regex)> {
     let keyword_regex = &format!("(^{0}[^_a-zA-Z0-9])|(^{0}$)", keyword_regex);
     vec![
         (
-            TokenKind::StringLiteral,
+            TokenKind::StringLiteral, //TODO: Remover as aspas da string
             Regex::new("^((\".*?\")|('.*?'))").unwrap(),
         ),
         (
